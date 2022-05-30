@@ -1,0 +1,103 @@
+/* --------------------
+   Case Study Questions
+   --------------------*/
+
+-- 1. What is the total amount each customer spent at the restaurant?
+/*
+-- pull out the cost of (each_item)*(ordered_times) by customer_id
+select s.customer_id, s.product_id, count(s.product_id) as each_count,
+count(s.product_id)*(select m.price from dannys_diner.menu m where s.product_id = m.product_id) as each_item_sum
+into sum_each_item
+from dannys_diner.sales s
+group by s.customer_id,s.product_id;
+
+--sum those up by each customer
+select customer_id as customer,
+sum(each_item_sum) as total_spent
+from sum_each_item
+group by customer_id
+order by customer_id
+*/
+
+-- 2. How many days has each customer visited the restaurant?
+/*
+-- how many day a customer has ordered from the restaurant? remove duplicated reords as same date but multiple orders.
+SELECT s.customer_id as customer,
+count( distinct s.order_date)
+from dannys_diner.sales s
+group by 1
+*/
+-- 3. What was the first item from the menu purchased by each customer?
+/*
+-- find 1st ordered date of each customer
+select s.customer_id, min(s.order_date) as first_order_date
+into first_date_ordered
+from dannys_diner.sales s
+group by s.customer_id
+order by s.customer_id;
+--find out which items ordered by that customer on that date
+select f.customer_id, f.first_order_date,
+s.product_id,
+m.product_name, m.price
+from first_date_ordered f
+join dannys_diner.sales s
+on f.customer_id = s.customer_id
+and f.first_order_date = s.order_date
+join dannys_diner.menu m
+on s.product_id = m.product_id
+order by f.customer_id
+*/
+-- 4. What is the most purchased item on the menu and how many times was it purchased by all customers?
+
+/*
+-- which product_id sold most?
+select s.product_id, count(s.order_date)
+into sold_most
+from dannys_diner.sales s
+group by s.product_id
+order by 2 desc
+limit 1;
+-- what is the product info from menu
+select m.* from dannys_diner.menu m
+join sold_most s
+on m.product_id = s.product_id
+*/
+
+-- 5. Which item was the most popular for each customer?
+/*
+--count each item by each customer
+select s.customer_id, s.product_id, count(order_date) as count_each
+into count_each_item
+from dannys_diner.sales s
+group by s.customer_id, s.product_id
+order by 3 desc;
+
+--pick item that has count is the max for each customer
+select c.customer_id, c.product_id, c.count_each as order_times, me.product_name
+from count_each_item c
+join (select cc.customer_id, max(cc.count_each) as max_count
+      from count_each_item cc
+      group by cc.customer_id) sub
+on c.customer_id = sub.customer_id
+join dannys_diner.menu me
+on c.product_id = me.product_id
+where c.count_each = sub.max_count
+order by c.customer_id
+*/
+
+-- 6. Which item was purchased first by the customer after they became a member?
+-- 7. Which item was purchased just before the customer became a member?
+-- 8. What is the total items and amount spent for each member before they became a member?
+-- 9.  If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
+-- 10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
+
+-- Example Query:
+/*
+SELECT
+  	product_id,
+    product_name,
+    price
+FROM dannys_diner.menu
+ORDER BY price DESC
+LIMIT 5;
+*/
