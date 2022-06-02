@@ -1,203 +1,211 @@
 /* --------------------
    Case Study Questions
-   --------------------*/
+   --------------------*/ 
+ -- 1. What is the total amount each customer spent at the restaurant?
+ -- pull out the cost of (each_item)*(ordered_times) by customer_id
 
--- 1. What is the total amount each customer spent at the restaurant?
-/*
--- pull out the cost of (each_item)*(ordered_times) by customer_id
-select s.customer_id, s.product_id, count(s.product_id) as each_count,
-count(s.product_id)*(select m.price from dannys_diner.menu m where s.product_id = m.product_id) as each_item_sum
-into sum_each_item
-from dannys_diner.sales s
-group by s.customer_id,s.product_id;
+SELECT s.customer_id,
+       s.product_id,
+       count(s.product_id) AS each_count,
+       count(s.product_id)*
+  (SELECT m.price
+   FROM dannys_diner.menu m
+   WHERE s.product_id = m.product_id) AS each_item_sum INTO sum_each_item
+FROM dannys_diner.sales s
+GROUP BY s.customer_id,
+         s.product_id;
 
 --sum those up by each customer
-select customer_id as customer,
-sum(each_item_sum) as total_spent
-from sum_each_item
-group by customer_id
-order by customer_id
-*/
+
+SELECT customer_id AS customer,
+       sum(each_item_sum) AS total_spent
+FROM sum_each_item
+GROUP BY customer_id
+ORDER BY customer_id 
 
 -- 2. How many days has each customer visited the restaurant?
-/*
 -- how many day a customer has ordered from the restaurant? remove duplicated reords as same date but multiple orders.
-SELECT s.customer_id as customer,
-count( distinct s.order_date)
-from dannys_diner.sales s
-group by 1
-*/
+
+SELECT s.customer_id AS customer,
+       count(DISTINCT s.order_date)
+FROM dannys_diner.sales s
+GROUP BY 1 
 -- 3. What was the first item from the menu purchased by each customer?
-/*
--- find 1st ordered date of each customer
-select s.customer_id, min(s.order_date) as first_order_date
-into first_date_ordered
-from dannys_diner.sales s
-group by s.customer_id
-order by s.customer_id;
+ -- find 1st ordered date of each customer
+
+SELECT s.customer_id,
+       min(s.order_date) AS first_order_date INTO first_date_ordered
+FROM dannys_diner.sales s
+GROUP BY s.customer_id
+ORDER BY s.customer_id;
+
 --find out which items ordered by that customer on that date
-select f.customer_id, f.first_order_date,
-s.product_id,
-m.product_name, m.price
-from first_date_ordered f
-join dannys_diner.sales s
-on f.customer_id = s.customer_id
-and f.first_order_date = s.order_date
-join dannys_diner.menu m
-on s.product_id = m.product_id
-order by f.customer_id
-*/
+
+SELECT f.customer_id,
+       f.first_order_date,
+       s.product_id,
+       m.product_name,
+       m.price
+FROM first_date_ordered f
+JOIN dannys_diner.sales s ON f.customer_id = s.customer_id
+AND f.first_order_date = s.order_date
+JOIN dannys_diner.menu m ON s.product_id = m.product_id
+ORDER BY f.customer_id 
 -- 4. What is the most purchased item on the menu and how many times was it purchased by all customers?
+ -- which product_id sold most?
 
-/*
--- which product_id sold most?
-select s.product_id, count(s.order_date)
-into sold_most
-from dannys_diner.sales s
-group by s.product_id
-order by 2 desc
-limit 1;
+SELECT s.product_id,
+       count(s.order_date) INTO sold_most
+FROM dannys_diner.sales s
+GROUP BY s.product_id
+ORDER BY 2 DESC
+LIMIT 1;
+
 -- what is the product info from menu
-select m.* from dannys_diner.menu m
-join sold_most s
-on m.product_id = s.product_id
-*/
 
+SELECT m.*
+FROM dannys_diner.menu m
+JOIN sold_most s ON m.product_id = s.product_id 
 -- 5. Which item was the most popular for each customer?
-/*
---count each item by each customer
-select s.customer_id, s.product_id, count(order_date) as count_each
-into count_each_item
-from dannys_diner.sales s
-group by s.customer_id, s.product_id
-order by 3 desc;
+ --count each item by each customer
+
+SELECT s.customer_id,
+       s.product_id,
+       count(order_date) AS count_each INTO count_each_item
+FROM dannys_diner.sales s
+GROUP BY s.customer_id,
+         s.product_id
+ORDER BY 3 DESC;
 
 --pick item that has count is the max for each customer
-select c.customer_id, c.product_id, c.count_each as order_times, me.product_name
-from count_each_item c
-join (select cc.customer_id, max(cc.count_each) as max_count
-      from count_each_item cc
-      group by cc.customer_id) sub
-on c.customer_id = sub.customer_id
-join dannys_diner.menu me
-on c.product_id = me.product_id
-where c.count_each = sub.max_count
-order by c.customer_id
-*/
 
+SELECT c.customer_id,
+       c.product_id,
+       c.count_each AS order_times,
+       me.product_name
+FROM count_each_item c
+JOIN
+  (SELECT cc.customer_id,
+          max(cc.count_each) AS max_count
+   FROM count_each_item cc
+   GROUP BY cc.customer_id) sub ON c.customer_id = sub.customer_id
+JOIN dannys_diner.menu me ON c.product_id = me.product_id
+WHERE c.count_each = sub.max_count
+ORDER BY c.customer_id 
 -- 6. Which item was purchased first by the customer after they became a member?
-/*
--- find 1st ordered date after become member
-select s.customer_id, min(s.order_date) as first_order_date
-into first_date_ordered
-from dannys_diner.sales s
-join dannys_diner.members mem
-on s.customer_id = mem.customer_id
-where s.order_date >= mem.join_date
-group by s.customer_id
-order by s.customer_id;
+ -- find 1st ordered date after become member
+
+SELECT s.customer_id,
+       min(s.order_date) AS first_order_date INTO first_date_ordered
+FROM dannys_diner.sales s
+JOIN dannys_diner.members mem ON s.customer_id = mem.customer_id
+WHERE s.order_date >= mem.join_date
+GROUP BY s.customer_id
+ORDER BY s.customer_id;
 
 --find out which items ordered by that customer on that date
-select f.customer_id, f.first_order_date,
-s.product_id,
-m.product_name, m.price
-from first_date_ordered f
-join dannys_diner.sales s
-on f.customer_id = s.customer_id
-and f.first_order_date = s.order_date
-join dannys_diner.menu m
-on s.product_id = m.product_id
-order by f.customer_id
-*/
+
+SELECT f.customer_id,
+       f.first_order_date,
+       s.product_id,
+       m.product_name,
+       m.price
+FROM first_date_ordered f
+JOIN dannys_diner.sales s ON f.customer_id = s.customer_id
+AND f.first_order_date = s.order_date
+JOIN dannys_diner.menu m ON s.product_id = m.product_id
+ORDER BY f.customer_id 
 -- 7. Which item was purchased just before the customer became a member?
-/*
--- find 1st ordered date before become member
-select s.customer_id, max(s.order_date) as first_order_date
-into first_date_ordered_before_mem
-from dannys_diner.sales s
-join dannys_diner.members mem
-on s.customer_id = mem.customer_id
-where s.order_date < mem.join_date
-group by s.customer_id
-order by s.customer_id;
+ -- find 1st ordered date before become member
+
+SELECT s.customer_id,
+       max(s.order_date) AS first_order_date INTO first_date_ordered_before_mem
+FROM dannys_diner.sales s
+JOIN dannys_diner.members mem ON s.customer_id = mem.customer_id
+WHERE s.order_date < mem.join_date
+GROUP BY s.customer_id
+ORDER BY s.customer_id;
 
 --find out which items ordered by that customer on that date
-select f.customer_id, f.first_order_date,
-s.product_id,
-m.product_name, m.price
-from first_date_ordered_before_mem f
-join dannys_diner.sales s
-on f.customer_id = s.customer_id
-and f.first_order_date = s.order_date
-join dannys_diner.menu m
-on s.product_id = m.product_id
-order by f.customer_id
-*/
+
+SELECT f.customer_id,
+       f.first_order_date,
+       s.product_id,
+       m.product_name,
+       m.price
+FROM first_date_ordered_before_mem f
+JOIN dannys_diner.sales s ON f.customer_id = s.customer_id
+AND f.first_order_date = s.order_date
+JOIN dannys_diner.menu m ON s.product_id = m.product_id
+ORDER BY f.customer_id 
 -- 8. What is the total items and amount spent for each member before they became a member?
-/*
--- get total items ordered by each member
-select s.customer_id, s.product_id, count(s.product_id) as items_count
-into total_items
-from dannys_diner.sales s
-join dannys_diner.members mem
-on s.customer_id = mem.customer_id
-and s.order_date < mem.join_date
-group by s.customer_id,s.product_id
-order by s.customer_id;
+ -- get total items ordered by each member
 
-select t.customer_id, sum(t.items_count*mem.price) as expense
-from total_items t
-join dannys_diner.menu mem
-on t.product_id = mem.product_id
-group by t.customer_id
-order by t.customer_id;
-*/
+SELECT s.customer_id,
+       s.product_id,
+       count(s.product_id) AS items_count INTO total_items
+FROM dannys_diner.sales s
+JOIN dannys_diner.members mem ON s.customer_id = mem.customer_id
+AND s.order_date < mem.join_date
+GROUP BY s.customer_id,
+         s.product_id
+ORDER BY s.customer_id;
+
+
+SELECT t.customer_id,
+       sum(t.items_count*mem.price) AS expense
+FROM total_items t
+JOIN dannys_diner.menu mem ON t.product_id = mem.product_id
+GROUP BY t.customer_id
+ORDER BY t.customer_id;
+
 -- 9.  If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
-/*
--- get total items per customer
-select s.customer_id, s.product_id, count(s.product_id) as items_count
-into total_items
-from dannys_diner.sales s
-group by s.customer_id,s.product_id
-order by s.customer_id;
+ -- get total items per customer
+
+SELECT s.customer_id,
+       s.product_id,
+       count(s.product_id) AS items_count INTO total_items
+FROM dannys_diner.sales s
+GROUP BY s.customer_id,
+         s.product_id
+ORDER BY s.customer_id;
 
 -- calculate the sum of points
-select t.customer_id,
-        sum (case mem.product_name LIKE 'sushi'
-        	when TRUE then t.items_count*mem.price*20
-        else t.items_count*mem.price*10
-        end)
-from total_items t
-join dannys_diner.menu mem
-on t.product_id = mem.product_id
-group by t.customer_id
-order by t.customer_id;
-*/
+
+SELECT t.customer_id,
+       SUM (CASE mem.product_name LIKE 'sushi'
+                WHEN TRUE THEN t.items_count*mem.price*20
+                ELSE t.items_count*mem.price*10
+            END)
+FROM total_items t
+JOIN dannys_diner.menu mem ON t.product_id = mem.product_id
+GROUP BY t.customer_id
+ORDER BY t.customer_id;
+
 -- 10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
-/*
--- get total items per customer before end of Jan
-select s.customer_id, s.product_id, s.order_date,count(s.product_id) as items_count
-into total_items_beforeJan
-from dannys_diner.sales s
-join dannys_diner.members mem
-on s.customer_id = mem.customer_id
-where s.order_date < '2021-02-01'
-group by s.customer_id,s.product_id,s.order_date
-order by s.customer_id;
+ -- get total items per customer before end of Jan
 
+SELECT s.customer_id,
+       s.product_id,
+       s.order_date,
+       count(s.product_id) AS items_count INTO total_items_beforeJan
+FROM dannys_diner.sales s
+JOIN dannys_diner.members mem ON s.customer_id = mem.customer_id
+WHERE s.order_date < '2021-02-01'
+GROUP BY s.customer_id,
+         s.product_id,
+         s.order_date
+ORDER BY s.customer_id;
 
 -- calculate the sum of points
-select t.customer_id,
-        sum (case t.order_date < (m.join_date +7)
-        	when TRUE then t.items_count*mem.price*20
-        else t.items_count*mem.price*10
-        end)
-from total_items_beforeJan t
-join dannys_diner.menu mem
-on t.product_id = mem.product_id
-join dannys_diner.members m
-on t.customer_id = m.customer_id
-group by t.customer_id
-order by t.customer_id;
-*/
 
+SELECT t.customer_id,
+       SUM (CASE t.order_date < (m.join_date +7)
+                WHEN TRUE THEN t.items_count*mem.price*20
+                ELSE t.items_count*mem.price*10
+            END)
+FROM total_items_beforeJan t
+JOIN dannys_diner.menu mem ON t.product_id = mem.product_id
+JOIN dannys_diner.members m ON t.customer_id = m.customer_id
+GROUP BY t.customer_id
+ORDER BY t.customer_id;
